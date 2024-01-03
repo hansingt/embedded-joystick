@@ -8,10 +8,15 @@ readme = "README.md"
 repository = "https://github.com/hansingt/embedded-joystick"
 license = "MIT"
 keywords = ["embedded-hal", "joystick", "no_std", "embedded", "hal"]
-categories = ["embedded", "hardware-support", "no-std", "no-std::no-alloc"]
+categories = ["embedded", "hardware-support", "no-std"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-nb = { version = "1.1.0" }
+critical-section = { version = "1.1.2" }
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
+nb = { version = "1.1.0" }
+
+[dev-dependencies]
+embedded-hal-mock = { version = "0.9.0" }
+critical-section = { version = "1.1.2", features = ["std"] }
