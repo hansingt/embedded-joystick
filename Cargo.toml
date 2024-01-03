@@ -1,0 +1,17 @@
+[package]
+name = "joystick-hal"
+description = "A small joystick driver based on embedded-hal"
+version = "0.1.0"
+edition = "2021"
+authors = ["Torben Hansing <torbenhansing@gmail.com>"]
+readme = "README.md"
+repository = "https://github.com/hansingt/embedded-joystick"
+license = "MIT"
+keywords = ["embedded-hal", "joystick", "no_std", "embedded", "hal"]
+categories = ["embedded", "hardware-support", "no-std", "no-std::no-alloc"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+nb = { version = "1.1.0" }
+embedded-hal = { version = "0.2.7", features = ["unproven"] }
