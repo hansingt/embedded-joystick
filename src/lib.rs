@@ -1,7 +1,8 @@
+#![no_std]
+
 use core::cell::RefCell;
-use core::fmt::{Display, Formatter};
+use core::fmt::{Debug, Display, Formatter};
 use core::marker::PhantomData;
-use std::fmt::Debug;
 
 use critical_section::Mutex;
 use embedded_hal::adc::{Channel, OneShot};
