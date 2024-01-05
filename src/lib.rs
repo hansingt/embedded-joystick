@@ -31,7 +31,7 @@ where
 {
     channel: C,
     adc: &'a Mutex<RefCell<OS>>,
-    _step: f32,
+    _max_value: u32,
     _adc_marker: PhantomData<ADC>,
     _word_marker: PhantomData<Word>,
 }
@@ -44,25 +44,25 @@ where
 {
     #[inline]
     fn new(adc: &'a Mutex<RefCell<OS>>, channel: C, resolution: usize) -> Self {
-        let _step = 1. / (2u32.pow(resolution as u32) as f32);
+        let _max_value = 2u32.pow(resolution as u32) - 1;
         Self {
             channel,
             adc,
-            _step,
+            _max_value,
             _adc_marker: PhantomData,
             _word_marker: PhantomData,
         }
     }
 
-    fn read_raw(&mut self) -> nb::Result<Word, OS::Error> {
-        critical_section::with(|cs| self.adc.borrow(cs).borrow_mut().read(&mut self.channel))
+    fn read_raw(&mut self) -> Result<Word, OS::Error> {
+        critical_section::with(|cs| {
+            nb::block!(self.adc.borrow(cs).borrow_mut().read(&mut self.channel))
+        })
     }
 
-    fn read(&mut self) -> nb::Result<f32, OS::Error> {
-        match self.read_raw() {
-            Ok(raw_value) => Ok(self._step * raw_value.into()),
-            Err(error) => Err(error),
-        }
+    #[inline]
+    fn read(&mut self) -> Result<f32, OS::Error> {
+        Ok(self.read_raw()?.into() / self._max_value as f32)
     }
 }
 
@@ -107,44 +107,29 @@ where
     }
 
     #[inline]
-    pub fn get_vertical(&mut self) -> nb::Result<f32, OSV::Error> {
+    pub fn get_vertical(&mut self) -> Result<f32, OSV::Error> {
         self.vertical.read()
     }
 
     #[inline]
-    pub fn get_horizontal(&mut self) -> nb::Result<f32, OSH::Error> {
+    pub fn get_horizontal(&mut self) -> Result<f32, OSH::Error> {
         self.horizontal.read()
     }
 
     #[inline]
     pub fn switch_pressed(&self) -> Result<bool, S::Error> {
-        self.switch.is_high()
+        self.switch.is_low()
     }
 
-    pub fn get_position(
-        &mut self,
-    ) -> nb::Result<(f32, f32), JoystickError<OSV::Error, OSH::Error>> {
+    #[inline]
+    pub fn get_position(&mut self) -> Result<(f32, f32), JoystickError<OSV::Error, OSH::Error>> {
         let v = match self.get_vertical() {
             Ok(v) => v,
-            Err(error) => {
-                return match error {
-                    nb::Error::WouldBlock => Err(nb::Error::WouldBlock),
-                    nb::Error::Other(e) => {
-                        Err(nb::Error::Other(JoystickError::VerticalADCError(e)))
-                    }
-                }
-            }
+            Err(e) => return Err(JoystickError::VerticalADCError(e)),
         };
         let h = match self.get_horizontal() {
             Ok(h) => h,
-            Err(error) => {
-                return match error {
-                    nb::Error::WouldBlock => Err(nb::Error::WouldBlock),
-                    nb::Error::Other(e) => {
-                        Err(nb::Error::Other(JoystickError::HorizontalADCError(e)))
-                    }
-                }
-            }
+            Err(e) => return Err(JoystickError::HorizontalADCError(e)),
         };
         Ok((v, h))
     }
@@ -219,8 +204,8 @@ mod tests {
 
     #[test]
     fn test_get_position() {
-        for v in 0..=u8::MAX {
-            for h in 0..=u8::MAX {
+        for v in 0..u8::MAX {
+            for h in 0..u8::MAX {
                 let (adc, v_chan, h_chan) = get_adc(v, h);
                 let switch = get_switch(false);
                 let mut joystick = get_joystick(
@@ -233,8 +218,8 @@ mod tests {
                     switch,
                 );
                 let (pos_x, pos_y) = joystick.get_position().unwrap();
-                assert_eq!(pos_x, v as f32 / 256.);
-                assert_eq!(pos_y, h as f32 / 256.);
+                assert_eq!(pos_x, v as f32 / 255.);
+                assert_eq!(pos_y, h as f32 / 255.);
             }
         }
     }
