@@ -167,8 +167,8 @@ mod tests {
 
     fn get_switch(state: bool) -> PinMock {
         let pin_expectations = match state {
-            true => [PinTransaction::get(PinState::High)],
-            false => [PinTransaction::get(PinState::Low)],
+            true => [PinTransaction::get(PinState::Low)],
+            false => [PinTransaction::get(PinState::High)],
         };
         PinMock::new(&pin_expectations)
     }
